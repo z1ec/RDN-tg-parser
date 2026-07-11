@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Внутри контейнера слушаем все интерфейсы (иначе 127.0.0.1 недоступен снаружи)
+      - HOST=0.0.0.0
+    volumes:
+      # Данные (SQLite + ChromaDB) — сохраняются между перезапусками
+      - ./data:/app/data
+      # Кэш BGE-M3 (~1.5 GB) — скачивается один раз
+      - model_cache:/app/models
+    restart: unless-stopped
+
+volumes:
+  model_cache:

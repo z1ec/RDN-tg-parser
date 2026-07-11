@@ -1,0 +1,28 @@
+# Веб-фреймворк
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# Конфиг и переменные окружения
+python-dotenv==1.0.1
+
+# Векторная база
+chromadb==0.5.23
+
+# Эмбеддинги (BGE-M3)
+sentence-transformers==3.3.1
+
+# Работа с БД (SQLite через ORM)
+sqlalchemy==2.0.36
+
+# HTTP-клиент (для облачных LLM: Gemini / Groq)
+httpx==0.28.1
+
+# Валидация данных
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Аутентификация (JWT)
+PyJWT==2.10.1
+
+# Загрузка файлов через HTTP
+python-multipart==0.0.20

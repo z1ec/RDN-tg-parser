@@ -1,0 +1,21 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Локальные данные — монтируются как volume
+data/
+
+# Тестовые экспорты Telegram
+ChatExport_*/
+
+# Секреты не копируем в образ — передаются через env_file
+.env
+
+# Документация и прочее
+documentation/
+*.md
+claude_code_brief.txt
+
+.DS_Store

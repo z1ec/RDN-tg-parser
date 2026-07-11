@@ -1,0 +1,39 @@
+# Секреты
+.env
+
+# Локальные данные (БД, векторная база, загруженные файлы)
+data/
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Виртуальное окружение
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Тестовые данные (реальные экспорты Telegram)
+ChatExport_*/
+*.json
+!.env.example
+
+# Логи
+*.log
+
+# macOS
+.DS_Store
