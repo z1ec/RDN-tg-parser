@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")
     chroma_dir: Path = Path("data/chroma")
     sqlite_path: Path = Path("data/db.sqlite")
+    uploads_dir: Path = Path("data/uploads")     # исходники result.json — хранятся до полной готовности чата (для возобновления)
 
     # --- Чанкинг ---
     chunk_gap_minutes: int = 15          # пауза между сообщениями → новый чанк
@@ -56,6 +57,7 @@ class Settings(BaseSettings):
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.chroma_dir.mkdir(parents=True, exist_ok=True)
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Глобальный экземпляр — импортировать его во всех модулях

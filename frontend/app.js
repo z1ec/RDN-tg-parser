@@ -12,6 +12,7 @@ const state = {
   filterGroupId: null,
   filterLabel: null,
   pollTimers: {},        // таймеры опроса статуса чатов
+  rateTracker: {},       // chatId -> { time, count } — для оценки скорости/ETA
 };
 
 // ── Утилиты запросов ─────────────────────────────────────────────────────────
@@ -152,23 +153,48 @@ function renderChats() {
 
     const badgeClass = {
       ready: 'badge-ready', processing: 'badge-processing',
-      error: 'badge-error', pending: 'badge-pending',
+      error: 'badge-error', pending: 'badge-pending', paused: 'badge-paused',
     }[chat.status] || 'badge-pending';
 
     const badgeLabel = {
-      ready: '✓', processing: '⟳', error: '✕', pending: '…',
+      ready: '✓', processing: '⟳', error: '✕', pending: '…', paused: '⏸',
     }[chat.status] || '?';
 
     const groupTags = chat.groups.length
       ? chat.groups.map(g => `<span class="chat-group-tag">${escHtml(g)}</span>`).join('')
       : '';
 
+    // Кнопка управления обработкой — зависит от текущего статуса
+    let actionBtn = '';
+    if (chat.status === 'processing') {
+      actionBtn = `<button class="btn-icon" data-pause-chat="${chat.id}" title="Пауза">⏸</button>`;
+    } else if (chat.status === 'paused') {
+      actionBtn = `<button class="btn-icon" data-resume-chat="${chat.id}" title="Продолжить">▶</button>`;
+    } else if (chat.status === 'error') {
+      actionBtn = `<button class="btn-icon" data-resume-chat="${chat.id}" title="Повторить">↻</button>`;
+    }
+
     li.innerHTML = `
       <span class="item-name" title="${escHtml(chat.title)}">${escHtml(chat.title)}</span>
       <span class="item-badge ${badgeClass}">${badgeLabel}</span>
+      ${actionBtn}
       <button class="btn-icon" data-manage-groups="${chat.id}" title="Группы">⊞</button>
       <button class="btn-danger" data-del-chat="${chat.id}" title="Удалить">✕</button>
     `;
+
+    // Прогресс эмбеддинга — показываем, пока есть что показать (в процессе или на паузе)
+    if ((chat.status === 'processing' || chat.status === 'paused') && chat.total_chunks > 0) {
+      const percent = Math.min(100, Math.round((chat.chunk_count / chat.total_chunks) * 100));
+      const eta = chat.status === 'processing' ? formatEta(chat._eta) : '';
+      const progressRow = document.createElement('div');
+      progressRow.className = 'chat-progress';
+      progressRow.innerHTML = `
+        <div class="chat-progress-bar"><div class="chat-progress-fill" style="width:${percent}%"></div></div>
+        <span class="chat-progress-text">${chat.chunk_count} / ${chat.total_chunks} чанков (${percent}%)${eta ? ' · ' + eta : ''}</span>
+      `;
+      li.appendChild(progressRow);
+    }
+
     if (groupTags) {
       const tagsRow = document.createElement('div');
       tagsRow.className = 'chat-group-tags';
@@ -177,7 +203,8 @@ function renderChats() {
     }
 
     li.addEventListener('click', (e) => {
-      if (e.target.closest('[data-del-chat]') || e.target.closest('[data-manage-groups]')) return;
+      if (e.target.closest('[data-del-chat]') || e.target.closest('[data-manage-groups]')
+        || e.target.closest('[data-pause-chat]') || e.target.closest('[data-resume-chat]')) return;
       setFilter('chat', chat.id, chat.title);
     });
     li.querySelector('[data-del-chat]').addEventListener('click', e => {
@@ -188,6 +215,11 @@ function renderChats() {
       e.stopPropagation();
       openGroupsModal(chat);
     });
+    const pauseBtn = li.querySelector('[data-pause-chat]');
+    if (pauseBtn) pauseBtn.addEventListener('click', e => { e.stopPropagation(); pauseChat(chat.id); });
+    const resumeBtn = li.querySelector('[data-resume-chat]');
+    if (resumeBtn) resumeBtn.addEventListener('click', e => { e.stopPropagation(); resumeChat(chat.id); });
+
     ul.appendChild(li);
   });
 }
@@ -274,19 +306,72 @@ function startPolling(chatId) {
   state.pollTimers[chatId] = setInterval(async () => {
     try {
       const s = await apiFetch(`/chats/${chatId}/status`);
-      if (s.status === 'ready' || s.status === 'error') {
+      updateChatProgress(chatId, s);
+      if (s.status === 'ready' || s.status === 'error' || s.status === 'paused') {
         clearInterval(state.pollTimers[chatId]);
         delete state.pollTimers[chatId];
+        delete state.rateTracker[chatId];
         await loadChats();
         const statusEl = document.getElementById('upload-status');
         if (s.status === 'ready') {
           statusEl.textContent = `✓ Чат готов (${s.chunk_count} чанков)`;
+        } else if (s.status === 'paused') {
+          statusEl.textContent = `⏸ Обработка приостановлена (${s.chunk_count}/${s.total_chunks})`;
         } else {
           statusEl.textContent = `✕ Ошибка: ${s.error_msg}`;
         }
       }
     } catch (e) { /* сеть временно недоступна */ }
   }, 3000);
+}
+
+// Обновляет прогресс конкретного чата в состоянии и перерисовывает список
+// (без полного loadChats — чтобы не дёргать сервер лишний раз на каждый тик опроса).
+function updateChatProgress(chatId, s) {
+  const chat = state.chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  const now = Date.now();
+  const prev = state.rateTracker[chatId];
+  if (prev && s.chunk_count > prev.count && now > prev.time) {
+    const rate = (s.chunk_count - prev.count) / ((now - prev.time) / 1000); // чанков/сек
+    chat._eta = rate > 0 ? Math.round((s.total_chunks - s.chunk_count) / rate) : null;
+  }
+  state.rateTracker[chatId] = { time: now, count: s.chunk_count };
+
+  chat.status = s.status;
+  chat.chunk_count = s.chunk_count;
+  chat.total_chunks = s.total_chunks;
+  renderChats();
+}
+
+async function pauseChat(chatId) {
+  try {
+    await apiFetch(`/chats/${chatId}/pause`, { method: 'POST' });
+  } catch (e) {
+    alert(`Ошибка: ${e.message}`);
+  }
+}
+
+async function resumeChat(chatId) {
+  try {
+    await apiFetch(`/chats/${chatId}/resume`, { method: 'POST' });
+    delete state.rateTracker[chatId];
+    await loadChats();
+    startPolling(chatId);
+  } catch (e) {
+    alert(`Ошибка: ${e.message}`);
+  }
+}
+
+// Человекочитаемая оценка оставшегося времени
+function formatEta(seconds) {
+  if (seconds == null || seconds <= 0 || !isFinite(seconds)) return '';
+  if (seconds < 60) return `~${Math.round(seconds)} с`;
+  const totalMin = Math.round(seconds / 60);
+  if (totalMin < 60) return `~${totalMin} мин`;
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  return `~${h} ч ${m} мин`;
 }
 
 // ── Создание группы ───────────────────────────────────────────────────────────

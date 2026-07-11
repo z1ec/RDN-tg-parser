@@ -39,7 +39,8 @@ class Chat(Base):
     status = Column(String, default="pending")    # pending | processing | ready | error
     error_msg = Column(String, default="")
     tg_chat_id = Column(Integer, nullable=True)   # оригинальный ID чата из Telegram
-    chunk_count = Column(Integer, default=0)      # число чанков в Chroma
+    chunk_count = Column(Integer, default=0)      # число уже обработанных чанков (в Chroma)
+    total_chunks = Column(Integer, default=0)     # общее число чанков (известно после чанкинга)
 
     owner = relationship("User", back_populates="chats")
     groups = relationship("Group", secondary=chat_group_table, back_populates="chats")

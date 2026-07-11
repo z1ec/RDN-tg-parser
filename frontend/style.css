@@ -258,6 +258,23 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .badge-processing { background: var(--yellow-soft); color: var(--yellow); }
 .badge-error      { background: var(--red-soft);    color: var(--red); }
 .badge-pending    { background: var(--surface-3);   color: var(--text-dim); }
+.badge-paused     { background: var(--surface-3);   color: var(--text-dim); }
+
+/* Прогресс обработки чата (эмбеддинг) */
+.chat-progress {
+  display: flex; flex-direction: column; gap: .25rem;
+  flex: 0 0 100%; width: 100%; padding: .1rem 0 .05rem 0;
+}
+.chat-progress-bar {
+  height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; flex-shrink: 0;
+}
+.chat-progress-fill {
+  height: 100%; background: var(--invert-bg); transition: width .3s ease; min-width: 2px;
+}
+.chat-progress-text {
+  font-family: var(--font-mono); font-size: .68rem; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* Статус загрузки */
 .upload-status {

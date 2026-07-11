@@ -28,32 +28,41 @@ class VectorStore:
         chat_id: int,
         owner_id: int,
         batch_size: int | None = None,
+        start_index: int = 0,
+        fresh: bool = True,
         progress_cb=None,
     ) -> None:
         """
         Добавляет чанки чата батчами, чтобы не исчерпать память.
-        Перед добавлением удаляет старые данные чата.
 
+        chunks      — чанки, которые ЕЩЁ нужно добавить (уже без обработанного префикса)
+        start_index — абсолютный индекс первого чанка в этом списке (для возобновления —
+                      чтобы ID в Chroma совпадали с тем, что было бы при обработке с нуля)
+        fresh       — True: это первый проход — удаляем старые данные чата перед началом.
+                      False: возобновление — ничего не удаляем, только доливаем недостающее.
         batch_size  — сколько чанков обрабатываем за один раз
                       (по умолчанию = размер батча эмбеддера, чтобы не дробить дважды)
-        progress_cb — опциональный callback(added: int, total: int)
+        progress_cb — опциональный callback(added: int) — абсолютное число обработанных чанков.
+                      Может бросить исключение (например, при запросе паузы) — оно всплывёт наружу.
         """
-        self.delete_chat(chat_id=chat_id, owner_id=owner_id)
+        if fresh:
+            self.delete_chat(chat_id=chat_id, owner_id=owner_id)
 
         if not chunks:
             return
 
         embedder = get_embedder()
-        total = len(chunks)
+        total_remaining = len(chunks)
         batch = batch_size or settings.embedding_batch_size
 
-        for batch_start in range(0, total, batch):
+        for batch_start in range(0, total_remaining, batch):
             batch_chunks = chunks[batch_start : batch_start + batch]
             texts = [c["text"] for c in batch_chunks]
 
             vectors = embedder.embed(texts)
 
-            ids = [f"c{chat_id}_o{owner_id}_{batch_start + i}" for i in range(len(batch_chunks))]
+            abs_start = start_index + batch_start
+            ids = [f"c{chat_id}_o{owner_id}_{abs_start + i}" for i in range(len(batch_chunks))]
             clean_meta = [
                 {k: (str(v) if v is not None else "") for k, v in c["metadata"].items()}
                 for c in batch_chunks
@@ -67,7 +76,7 @@ class VectorStore:
             )
 
             if progress_cb:
-                progress_cb(min(batch_start + batch, total), total)
+                progress_cb(abs_start + len(batch_chunks))
 
     def search(
         self,

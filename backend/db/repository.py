@@ -69,14 +69,22 @@ def update_chat_status(
     status: str,
     error_msg: str = "",
     chunk_count: int = 0,
+    total_chunks: int = 0,
 ) -> None:
     update_vals = {"status": status}
     if error_msg:
         update_vals["error_msg"] = error_msg
     if chunk_count:
         update_vals["chunk_count"] = chunk_count
+    if total_chunks:
+        update_vals["total_chunks"] = total_chunks
     db.query(Chat).filter(Chat.id == chat_id).update(update_vals)
     db.commit()
+
+
+def get_stuck_processing_chats(db: Session) -> list[Chat]:
+    """Чаты, застрявшие в статусе 'processing' — осиротели из-за падения/перезапуска сервера."""
+    return db.query(Chat).filter(Chat.status == "processing").all()
 
 
 def delete_chat(db: Session, chat_id: int, owner_id: int) -> bool:
