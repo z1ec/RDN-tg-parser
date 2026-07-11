@@ -79,7 +79,6 @@ def _process_upload(chat_id: int, owner_id: int, file_path: str) -> None:
             chunks,
             chat_id=tg_id,
             owner_id=owner_id,
-            batch_size=100,
             progress_cb=on_progress,
         )
 

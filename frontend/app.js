@@ -433,6 +433,7 @@ document.getElementById('qa-input').addEventListener('keydown', e => {
 
 async function sendQuestion() {
   const input = document.getElementById('qa-input');
+  const sendBtn = document.getElementById('qa-send-btn');
   const question = input.value.trim();
   if (!question) return;
   input.value = '';
@@ -444,6 +445,7 @@ async function sendQuestion() {
   if (state.filterChatId) body.chat_id = state.filterChatId;
   if (state.filterGroupId) body.group_id = state.filterGroupId;
 
+  sendBtn.disabled = true;
   try {
     const data = await apiFetch('/qa', { method: 'POST', body: JSON.stringify(body) });
     thinking.remove();
@@ -493,6 +495,8 @@ async function sendQuestion() {
   } catch (e) {
     thinking.remove();
     addMessage('msg-error', `Ошибка: ${escHtml(e.message)}`);
+  } finally {
+    sendBtn.disabled = false;
   }
 }
 

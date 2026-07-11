@@ -4,14 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TG-parser — вопросы по чатам</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+<div class="brand-rule"></div>
+
 <!-- ── Экран входа ──────────────────────────────────────────────────── -->
 <div id="auth-screen" class="screen">
+  <div class="auth-kicker">RAG · TELEGRAM ARCHIVE · 2026</div>
   <div class="card auth-card">
-    <h1>TG-parser</h1>
+    <div class="auth-eyebrow">— СВОЙ АРХИВ ПЕРЕПИСОК —</div>
+    <h1>TG-parser<span class="reg-mark">®</span></h1>
     <p class="subtitle">Задавай вопросы по своим Telegram-чатам</p>
     <div class="tabs">
       <button class="tab active" data-tab="login">Войти</button>
@@ -29,12 +36,15 @@
 
   <aside class="sidebar">
     <div class="sidebar-header">
-      <span id="user-label" class="user-label"></span>
-      <button id="logout-btn" class="btn-ghost small">Выйти</button>
+      <div class="sidebar-kicker">● TG-PARSER</div>
+      <div class="sidebar-header-row">
+        <span id="user-label" class="user-label"></span>
+        <button id="logout-btn" class="btn-ghost small">Выйти</button>
+      </div>
     </div>
 
     <div class="sidebar-section">
-      <div class="section-title">Чаты
+      <div class="section-title"><span>Чаты</span>
         <button id="upload-btn" class="btn-ghost small" title="Загрузить result.json">+ Загрузить</button>
       </div>
       <input id="file-input" type="file" accept=".json" class="hidden" />
@@ -43,7 +53,7 @@
     </div>
 
     <div class="sidebar-section">
-      <div class="section-title">Группы
+      <div class="section-title"><span>Группы</span>
         <button id="new-group-btn" class="btn-ghost small">+ Создать</button>
       </div>
       <ul id="group-list" class="item-list"></ul>
@@ -53,7 +63,7 @@
   <main class="main-panel">
     <div class="qa-header">
       <div id="scope-label" class="scope-label">Поиск по всем чатам</div>
-      <button id="clear-scope-btn" class="btn-ghost small hidden">✕ Убрать фильтр</button>
+      <button id="clear-scope-btn" class="btn-ghost small hidden">✕&nbsp;Убрать фильтр</button>
     </div>
 
     <div id="qa-messages" class="qa-messages"></div>

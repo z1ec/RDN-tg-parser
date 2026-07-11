@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 
     # --- Эмбеддинги ---
     embedding_model: str = "BAAI/bge-m3"
+    embedding_device: str = "auto"       # auto | cuda | mps | cpu
+    embedding_batch_size: int = 64       # размер батча для model.encode()
+    embedding_fp16: bool = True          # половинная точность (только на cuda)
 
     # --- LLM ---
     llm_provider: str = "ollama"         # ollama | gemini | groq

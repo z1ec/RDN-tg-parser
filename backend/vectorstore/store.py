@@ -27,7 +27,7 @@ class VectorStore:
         chunks: list[dict],
         chat_id: int,
         owner_id: int,
-        batch_size: int = 100,
+        batch_size: int | None = None,
         progress_cb=None,
     ) -> None:
         """
@@ -35,10 +35,9 @@ class VectorStore:
         Перед добавлением удаляет старые данные чата.
 
         batch_size  — сколько чанков обрабатываем за один раз
+                      (по умолчанию = размер батча эмбеддера, чтобы не дробить дважды)
         progress_cb — опциональный callback(added: int, total: int)
         """
-        import gc
-
         self.delete_chat(chat_id=chat_id, owner_id=owner_id)
 
         if not chunks:
@@ -46,17 +45,18 @@ class VectorStore:
 
         embedder = get_embedder()
         total = len(chunks)
+        batch = batch_size or settings.embedding_batch_size
 
-        for batch_start in range(0, total, batch_size):
-            batch = chunks[batch_start : batch_start + batch_size]
-            texts = [c["text"] for c in batch]
+        for batch_start in range(0, total, batch):
+            batch_chunks = chunks[batch_start : batch_start + batch]
+            texts = [c["text"] for c in batch_chunks]
 
             vectors = embedder.embed(texts)
 
-            ids = [f"c{chat_id}_o{owner_id}_{batch_start + i}" for i in range(len(batch))]
+            ids = [f"c{chat_id}_o{owner_id}_{batch_start + i}" for i in range(len(batch_chunks))]
             clean_meta = [
                 {k: (str(v) if v is not None else "") for k, v in c["metadata"].items()}
-                for c in batch
+                for c in batch_chunks
             ]
 
             self._collection.add(
@@ -66,12 +66,8 @@ class VectorStore:
                 metadatas=clean_meta,
             )
 
-            # Освобождаем память после каждого батча
-            del vectors, texts
-            gc.collect()
-
             if progress_cb:
-                progress_cb(min(batch_start + batch_size, total), total)
+                progress_cb(min(batch_start + batch, total), total)
 
     def search(
         self,
