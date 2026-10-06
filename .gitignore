@@ -37,3 +37,4 @@ ChatExport_*/
 
 # macOS
 .DS_Store
+*.zip
